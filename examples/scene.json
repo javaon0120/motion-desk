@@ -1,0 +1,47 @@
+{
+  "id": "home-enter",
+  "name": "首页标题入场",
+  "trigger": "页面进入",
+  "previewUrl": "http://localhost:3000",
+  "tracks": [
+    {
+      "id": "hero-title-opacity",
+      "elementId": "hero-title",
+      "name": "首页标题",
+      "property": "opacity",
+      "source": "src/components/Hero.jsx · [data-motion-id=\"hero-title\"] · opacity",
+      "delay": 0,
+      "duration": 600,
+      "easing": [0.22, 1, 0.36, 1],
+      "from": { "x": 0, "y": 0, "scale": 1, "opacity": 0 },
+      "to": { "x": 0, "y": 0, "scale": 1, "opacity": 1 },
+      "keyframes": [{ "offset": 0, "value": 0 }, { "offset": 1, "value": 1 }]
+    },
+    {
+      "id": "hero-title-y",
+      "elementId": "hero-title",
+      "name": "首页标题",
+      "property": "y",
+      "source": "src/components/Hero.jsx · [data-motion-id=\"hero-title\"] · translateY",
+      "delay": 100,
+      "duration": 600,
+      "easing": [0.22, 1, 0.36, 1],
+      "from": { "x": 0, "y": 24, "scale": 1, "opacity": 1 },
+      "to": { "x": 0, "y": 0, "scale": 1, "opacity": 1 },
+      "keyframes": [{ "offset": 0, "value": 24 }, { "offset": 1, "value": 0 }]
+    },
+    {
+      "id": "hero-title-scale",
+      "elementId": "hero-title",
+      "name": "首页标题",
+      "property": "scale",
+      "source": "src/components/Hero.jsx · [data-motion-id=\"hero-title\"] · scale",
+      "delay": 160,
+      "duration": 700,
+      "easing": [0.22, 1, 0.36, 1],
+      "from": { "x": 0, "y": 0, "scale": 0.96, "opacity": 1 },
+      "to": { "x": 0, "y": 0, "scale": 1, "opacity": 1 },
+      "keyframes": [{ "offset": 0, "value": 0.96 }, { "offset": 1, "value": 1 }]
+    }
+  ]
+}
