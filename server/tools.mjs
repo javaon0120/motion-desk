@@ -54,7 +54,7 @@ export async function callTool(name, args = {}) {
   if (name === "open_workbench") {
     const session = args.sessionId ? await request(`/sessions/${encodeURIComponent(args.sessionId)}`) : await request("/sessions", { workspace: args.workspace || root, ...(args.scene ? { scene: args.scene } : {}) });
     const url = `${runtime.url}/?session=${session.id}&token=${runtime.token}`;
-    return { sessionId: session.id, url, openInCodex: { placement: "right", target: { type: "browser", url } }, revision: session.revision, scene: session.scene, message: "请用 openInCodex 参数在对话右侧打开工作台。用户确认后用 get_handoff 读取指定版本。" };
+    return { sessionId: session.id, url, openInCodex: { placement: "right", target: { type: "browser", url } }, revision: session.revision, scene: session.scene, message: "在浏览器打开 url；宿主支持 Codex 侧面板时可用 openInCodex。用户确认后用 get_handoff 读取指定版本。" };
   }
   if (name === "get_session") return request(`/sessions/${encodeURIComponent(args.sessionId)}`);
   if (name === "list_sessions") return request("/sessions");

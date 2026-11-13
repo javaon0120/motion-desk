@@ -3,13 +3,15 @@
   "version": "0.2.0",
   "private": true,
   "type": "module",
+  "engines": { "node": ">=20" },
   "description": "在 AI 对话旁精调网页动效的本地插件基础版。",
   "scripts": {
+    "setup": "node scripts/setup.mjs",
     "start": "node server/server.mjs",
     "open": "node server/cli.mjs open_workbench",
     "mcp": "node server/mcp.mjs",
     "test": "node --test tests/*.test.mjs",
-    "check": "node --check public/app.js && node --check public/bridge.js && node --check server/server.mjs && node --check server/mcp.mjs"
+    "check": "node --check public/app.js && node --check public/bridge.js && node --check server/server.mjs && node --check server/mcp.mjs && node --check scripts/setup.mjs && node --check scripts/installer.mjs && node --check skills/motion-desk/scripts/motion-desk.mjs"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.25.1",

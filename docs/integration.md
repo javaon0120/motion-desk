@@ -2,6 +2,8 @@
 
 本文从已能运行的网页和基础动画开始。AI 负责读取原始实现并注册场景，Motion Desk 负责预览和精调，确认后再由 AI 修改源码。
 
+先在克隆目录执行 `npm ci` 和 `npm run setup`，选择 Codex 或 Claude Code。安装完成后，在目标项目的 Agent 会话中提出动效调整需求，下方接入步骤由 Agent 完成。日常使用不需要先手动启动 Motion Desk；MCP 会按需启动或复用本地工作台。
+
 ## 1. 启动项目并标记元素
 
 正常启动目标项目的开发服务，例如 `http://localhost:3000`。页面需要允许被本机工作台通过 iframe 加载。
@@ -43,7 +45,7 @@ console.log(JSON.stringify(result, null, 2));
 JS
 ```
 
-工作台会返回 `url`、`sessionId` 和 `openInCodex`。记录返回 URL 的来源部分，即协议、主机和端口，例如 `http://127.0.0.1:4318`；后台模式的端口通常不同，应以实际返回值为准。
+工作台会返回 `url`、`sessionId` 和 `openInCodex`。Codex 宿主提供侧面板工具时使用 `openInCodex`；Claude Code 等宿主在浏览器中打开 `url`。记录返回 URL 的来源部分，即协议、主机和端口，例如 `http://127.0.0.1:4318`；后台模式的端口通常不同，应以实际返回值为准。
 
 ## 3. 加载网页桥接模块
 

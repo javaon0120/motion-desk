@@ -17,7 +17,7 @@ const register = (name, description, inputSchema, readOnlyHint) => server.regist
     return { isError: true, content: [{ type: "text", text: error.message }] };
   }
 });
-register("open_workbench", "打开网页动效调试台。可创建已接入的场景，或通过 sessionId 恢复会话。不传场景时使用示例。返回的 openInCodex 可直接用于在右侧打开面板。", {
+register("open_workbench", "打开网页动效调试台。可创建已接入的场景，或通过 sessionId 恢复会话。不传场景时使用示例。在浏览器打开返回的 url；宿主支持 Codex 侧面板时也可使用 openInCodex。", {
   workspace: z.string().optional().describe("当前项目绝对路径"),
   sessionId: z.string().optional().describe("要恢复的现有会话；提供后忽略 scene"),
   scene: sceneSchema.optional().describe("已绑定真实网页元素的动效规格")

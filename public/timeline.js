@@ -14,6 +14,14 @@ export function moveTrack(track, delta) {
   return result;
 }
 
+export function moveTracks(tracks, delta) {
+  const min = Math.max(...tracks.map((track) => -(track.delay + (track.keyframes?.[0].offset || 0) * track.duration)));
+  const max = Math.min(...tracks.map((track) => 10000 - track.delay));
+  // 所有轨道共用边界，避免某条到达零点后其他轨道继续移动、破坏相对时序。
+  const shift = clamp(delta, Math.ceil(min), Math.floor(max));
+  return tracks.map((track) => moveTrack(track, shift));
+}
+
 export function resizeGroup(tracks, edge, delta) {
   const start = Math.min(...tracks.map((track) => track.delay));
   const end = Math.max(...tracks.map((track) => track.delay + track.duration));

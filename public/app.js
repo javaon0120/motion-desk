@@ -1,6 +1,7 @@
 import { clone, sceneDuration, timelineDuration, changesBetween, documentPositions } from './scene.js';
 import { curveGeometry, dragCurveControl, curveBadgePath } from './curve.js';
-import { resizeGroup, moveTrack } from './timeline.js';
+import { resizeGroup, moveTracks } from './timeline.js';
+import { isRowSelected, updateSelection, selectionTracks } from './selection.js';
 
 const $ = (selector) => document.querySelector(selector);
 const asset = (name) => `./assets/figma/${name}.svg`;
@@ -19,6 +20,7 @@ const histories = [];
 const future = [];
 const collapsed = new Set();
 let session, scene, original, selectedId, selectedProperty;
+let selectedRows = [], suppressSelectionClick = false;
 let time = 0, total = 2000, playing = false, looping = true, raf = 0, previousFrame = 0;
 let saveTimer, saveChain = Promise.resolve(), dirty = false, editSequence = 0, saveError;
 let previewConnected = false, previewOrigin, previewTimer, toastTimer, lastHandoff;
@@ -39,11 +41,32 @@ function toast(message) {
 function track() { return scene.tracks.find((item) => item.id === selectedId) || scene.tracks[0]; }
 function elementId(item = track()) { return item.elementId || item.id; }
 function selectedElementId() { return selectedId ? elementId() : null; }
-function setSelection(id, property = null) {
+function setSelection(id, property = null, options = {}) {
   if (document.activeElement?.closest('#inspector')) document.activeElement.blur();
-  selectedId = id;
-  selectedProperty = property;
+  selectedRows = updateSelection(selectedRows, id, property, options);
+  const active = selectedRows.at(-1);
+  selectedId = active?.id || null;
+  selectedProperty = active?.property || null;
   paintSelection(); renderInspector(); postPreview();
+}
+function selectedElementIds() { return new Set(selectionTracks(scene, selectedRows).map((item) => elementId(item))); }
+function bindSelectionMove(element, event, before, startX, width, id, property = null) {
+  const items = selectionTracks(scene, selectedRows), initial = items.map(clone);
+  const ids = new Set(items.map((item) => item.id));
+  const affectedGroups = groups().filter((group) => group.tracks.some((item) => ids.has(item.id)));
+  let dragged = false;
+  bindDrag(element, event, (next) => {
+    dragged ||= Math.hypot(next.clientX - startX, next.clientY - event.clientY) >= 3;
+    const delta = Math.round((next.clientX - startX) / width * total / 10) * 10;
+    const timings = moveTracks(initial, delta);
+    items.forEach((item, i) => Object.assign(item, timings[i]));
+    affectedGroups.forEach((group) => paintGroupTiming(group, $(`[data-summary="${group.id}"]`)));
+    postPreview();
+  }, () => {
+    if (JSON.stringify(before) !== JSON.stringify(scene)) { remember(before); setDirty(); }
+    else if (!dragged && selectedRows.length > 1) setSelection(id, property);
+    renderTracks(); renderInspector(); postPreview();
+  });
 }
 function groups() {
   const map = new Map();
@@ -69,6 +92,13 @@ function paintGroupTiming(group, summary) {
     $('#tracks').querySelectorAll(`[data-track="${item.id}"] .property-motion`).forEach((motion) => {
       motion.style.setProperty('--start', `${item.delay / total * 100}%`);
       motion.style.setProperty('--length', `${item.duration / total * 100}%`);
+      const frames = framesFor(item, motion.closest('[data-property]').dataset.property);
+      motion.querySelectorAll('[data-keyframe]').forEach((node, i) => { node.style.left = `${frames[i].offset * 100}%`; });
+      motion.querySelectorAll('.channel-line').forEach((node, i) => {
+        node.style.left = `${frames[i].offset * 100}%`;
+        node.style.width = `${(frames[i + 1].offset - frames[i].offset) * 100}%`;
+      });
+      motion.querySelectorAll('.easing-badge').forEach((node, i) => { node.style.left = `${(frames[i].offset + frames[i + 1].offset) / 2 * 100}%`; });
     });
   }
 }
@@ -217,18 +247,20 @@ function renderRuler() {
   $('#total-time').value = total;
 }
 function renderTracks() {
+  const selectedElements = selectedElementIds();
   $('#tracks').innerHTML = groups().map((group) => {
-    const isSelected = selectedElementId() === group.id;
+    const isSelected = selectedElements.has(group.id);
     const start = Math.min(...group.tracks.map((item) => item.delay));
     const end = Math.max(...group.tracks.map((item) => item.delay + item.duration));
     const rows = propertyRows(group);
     return `<section class="track-group ${isSelected ? 'selected' : ''} ${collapsed.has(group.id) ? 'collapsed' : ''}" data-group="${escapeHtml(group.id)}"><div class="track-row group-row"><div class="track-label group-label"><button class="label-select" data-select="${escapeHtml(group.tracks[0].id)}">${escapeHtml(group.name)}</button><button class="row-icon collapse-button" data-collapse="${escapeHtml(group.id)}" aria-label="${collapsed.has(group.id) ? '展开' : '折叠'} ${escapeHtml(group.name)}" aria-expanded="${!collapsed.has(group.id)}">${img('collapse')}</button></div><div class="track-lane"><div class="lane-content"><div class="summary-bar" data-summary="${escapeHtml(group.id)}" style="--start:${start / total * 100}%;--length:${(end - start) / total * 100}%" tabindex="0" role="group" aria-label="${escapeHtml(group.name)} 整组时间条" title="拖动中间平移，拖动两端缩放">${barGrip('start', group.name, start)}${barGrip('end', group.name, end)}</div></div></div></div>${collapsed.has(group.id) ? '' : rows.map(({ item, property }, rowIndex) => {
-      const selected = selectedId === item.id && selectedProperty === property;
+      const selected = isRowSelected(selectedRows, item.id, property);
       const frames = framesFor(item, property);
       const disabled = item.enabled === false;
       return `<div class="track-row property-row ${selected ? 'selected' : ''} ${disabled ? 'disabled' : ''}" data-track="${escapeHtml(item.id)}" data-property="${property}"><div class="track-label property-label">${img(rowIndex === rows.length - 1 ? 'tree-end' : 'tree-start', 'tree-icon')}<button class="label-select" data-select="${escapeHtml(item.id)}" data-property="${property}">${propertyNames[property]}</button><button class="row-icon" data-toggle="${escapeHtml(item.id)}" aria-label="${disabled ? '启用' : '停用'} ${escapeHtml(group.name)} ${propertyNames[property]}" aria-pressed="${!disabled}">${img(disabled ? 'eye-hidden' : 'eye')}</button></div><div class="track-lane"><div class="lane-content"><div class="property-motion" style="--start:${item.delay / total * 100}%;--length:${item.duration / total * 100}%">${frames.slice(0, -1).map((frame, i) => `<div class="channel-line" style="left:${frame.offset * 100}%;width:${(frames[i + 1].offset - frame.offset) * 100}%"></div>`).join('')}${frames.map((frame, i) => `<button class="keyframe" style="left:${frame.offset * 100}%" data-keyframe="${i}" title="${Math.round(item.delay + frame.offset * item.duration)}ms · ${frame.value}" aria-label="${escapeHtml(group.name)} ${propertyNames[property]} 关键帧 ${i + 1}">${keyframeIcon}</button>`).join('')}${disabled ? '' : frames.slice(0, -1).map((frame, i) => `<button class="easing-badge" data-select="${escapeHtml(item.id)}" data-property="${property}" style="left:${(frame.offset + frames[i + 1].offset) / 2 * 100}%" aria-label="调整 ${escapeHtml(group.name)} ${propertyNames[property]} 曲线">${curveBadgeIcon(item.easing)}</button>`).join('')}</div></div></div></div>`;
     }).join('')}</section>`;
   }).join('');
+  paintSelection();
   renderTime();
 }
 function renderCurve() {
@@ -249,8 +281,9 @@ function renderCurve() {
   $('#easing-preset').value = Object.keys(presets).find((key) => JSON.stringify(presets[key]) === JSON.stringify(points)) || 'custom';
 }
 function renderInspector() {
-  const editable = Boolean(selectedId && selectedProperty);
+  const editable = Boolean(selectedRows.length === 1 && selectedId && selectedProperty);
   const inspector = $('#inspector');
+  $('.inspector-placeholder').textContent = selectedRows.length > 1 ? `已选中 ${selectedRows.length} 条，拖动可一起平移` : '选择属性节点以编辑';
   inspector.classList.toggle('position-values', Boolean(selectedId && ['x', 'y'].includes(selectedProperty)));
   inspector.classList.toggle('is-empty', !editable);
   inspector.setAttribute('aria-disabled', String(!editable));
@@ -278,13 +311,18 @@ function renderInspector() {
 }
 function render() { renderRuler(); renderTracks(); renderInspector(); $('#scene-name').textContent = scene.name; }
 function paintSelection() {
-  $('#tracks').querySelectorAll('.track-group').forEach((node) => node.classList.toggle('selected', node.dataset.group === selectedElementId()));
-  $('#tracks').querySelectorAll('.property-row').forEach((node) => node.classList.toggle('selected', node.dataset.track === selectedId && node.dataset.property === selectedProperty));
+  const selectedElements = selectedElementIds();
+  $('#tracks').querySelectorAll('.track-group').forEach((node) => node.classList.toggle('selected', selectedElements.has(node.dataset.group)));
+  $('#tracks').querySelectorAll('.property-row').forEach((node) => {
+    const selected = isRowSelected(selectedRows, node.dataset.track, node.dataset.property);
+    node.classList.toggle('selected', selected);
+    node.querySelector('.label-select').setAttribute('aria-pressed', String(selected));
+  });
 }
-function select(id, property = null) {
+function select(id, property = null, options = {}) {
   const item = scene.tracks.find((item) => item.id === id);
   if (id !== null && !item) return;
-  setSelection(id, property);
+  setSelection(id, property, options);
 }
 function mutate(callback) {
   const before = clone(scene);
@@ -297,14 +335,20 @@ function restore(redo) {
   if (!source.length) return;
   destination.push(clone(scene)); scene = source.pop(); stop(); setDirty(); render();
 }
+document.addEventListener('pointerdown', () => { suppressSelectionClick = false; }, true);
 document.addEventListener('click', (event) => {
   const target = event.target.closest('[data-select]');
-  if (target) select(target.dataset.select, target.dataset.property);
+  if (target && !suppressSelectionClick) select(target.dataset.select, target.dataset.property, { additive: event.shiftKey });
+  suppressSelectionClick = false;
   const fold = event.target.closest('[data-collapse]');
   if (fold) {
     const id = fold.dataset.collapse;
     collapsed.has(id) ? collapsed.delete(id) : collapsed.add(id);
-    if (collapsed.has(id) && selectedElementId() === id) setSelection(selectedId);
+    if (collapsed.has(id)) {
+      selectedRows = selectedRows.filter((row) => !row.property || elementId(scene.tracks.find((item) => item.id === row.id)) !== id);
+      const active = selectedRows.at(-1);
+      setSelection(active?.id || null, active?.property, { preserve: true });
+    }
     renderTracks(); renderInspector(); postPreview();
   }
   const toggle = event.target.closest('[data-toggle]');
@@ -383,6 +427,16 @@ $('#tracks').addEventListener('pointerdown', (event) => {
   const key = event.target.closest('[data-keyframe]'), summary = event.target.closest('[data-summary]');
   const motion = !key && !summary ? event.target.closest('.property-motion') : null;
   const lane = event.target.closest('.track-lane');
+  const propertyRow = event.target.closest('.property-row');
+  if (event.shiftKey && (key || summary || motion || (lane && propertyRow))) {
+    event.preventDefault(); stop();
+    suppressSelectionClick = Boolean(event.target.closest('[data-select]'));
+    if (summary) {
+      const group = groups().find((group) => group.id === summary.dataset.summary);
+      setSelection(group.tracks[0].id, null, { additive: true });
+    } else setSelection(propertyRow.dataset.track, propertyRow.dataset.property, { additive: true });
+    return;
+  }
   if (!key && !summary && !motion) {
     if (lane && !event.target.closest('button')) {
       event.preventDefault();
@@ -393,43 +447,30 @@ $('#tracks').addEventListener('pointerdown', (event) => {
     return;
   }
   event.preventDefault(); stop();
+  suppressSelectionClick = Boolean(event.target.closest('[data-select]'));
   const before = clone(scene), startX = event.clientX;
   const width = Math.max(1, $('#ruler').clientWidth - 57);
   let moved = false;
   if (summary) {
     const group = groups().find((group) => group.id === summary.dataset.summary);
-    setSelection(group.tracks[0].id);
     const edge = event.target.closest('[data-resize]')?.dataset.resize;
+    setSelection(group.tracks[0].id, null, { preserve: !edge });
+    if (!edge) {
+      bindSelectionMove(summary, event, before, startX, width, group.tracks[0].id);
+      return;
+    }
     const initial = group.tracks.map(clone);
-    const delays = group.tracks.map((item) => item.delay);
-    const min = Math.min(...delays), max = Math.max(...delays);
     bindDrag(summary, event, (next) => {
       const delta = Math.round((next.clientX - startX) / width * total / 10) * 10;
-      if (edge) {
-        const timings = resizeGroup(initial, edge, delta);
-        group.tracks.forEach((item, i) => Object.assign(item, timings[i]));
-      } else {
-        const shift = clamp(delta, -min, 10000 - max);
-        group.tracks.forEach((item, i) => { item.delay = delays[i] + shift; });
-      }
+      const timings = resizeGroup(initial, edge, delta);
+      group.tracks.forEach((item, i) => Object.assign(item, timings[i]));
       paintGroupTiming(group, summary);
       postPreview();
     }, () => { if (JSON.stringify(before) !== JSON.stringify(scene)) { remember(before); setDirty(); } renderTracks(); renderInspector(); });
   } else if (motion) {
     const row = motion.closest('[data-track]');
-    setSelection(row.dataset.track, row.dataset.property);
-    const item = track(), initial = clone(item);
-    const group = groups().find((group) => group.id === elementId(item));
-    const groupBar = $(`[data-summary="${group.id}"]`);
-    bindDrag(motion, event, (next) => {
-      const delta = Math.round((next.clientX - startX) / width * total / 10) * 10;
-      Object.assign(item, moveTrack(initial, delta));
-      paintGroupTiming(group, groupBar);
-      postPreview();
-    }, () => {
-      if (JSON.stringify(before) !== JSON.stringify(scene)) { remember(before); setDirty(); }
-      renderTracks(); renderInspector(); postPreview();
-    });
+    setSelection(row.dataset.track, row.dataset.property, { preserve: true });
+    bindSelectionMove(motion, event, before, startX, width, row.dataset.track, row.dataset.property);
   } else {
     const row = key.closest('[data-track]');
     setSelection(row.dataset.track, row.dataset.property);

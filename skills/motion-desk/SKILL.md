@@ -1,23 +1,30 @@
 ---
 name: motion-desk
-description: 打开 Motion Desk 动效编辑器，将当前项目的真实网页接入右侧预览，通过时间轴和参数面板调整动效，再读取用户确认的参数落地到代码。用户说打开动效编辑器、使用 Motion Desk、精调动画或应用动效交接版本时使用。
+description: 在 Codex、Claude Code 等 Agent 中打开 Motion Desk，将真实网页接入可视化动效编辑器，调整时间轴和曲线，再把确认的参数落实到代码。用户说打开动效编辑器、使用 Motion Desk、精调动画或应用动效交接版本时使用。
 ---
 
 # Motion Desk
 
 ## 打开
 
-调用本插件 `open_workbench`，传入当前项目绝对路径 `workspace`。首次无场景时会打开示例；恢复编辑时传已有 `sessionId`。
+调用 Motion Desk 的 `open_workbench`（宿主可能为工具名添加命名空间），传入当前项目绝对路径 `workspace`。首次无场景时会打开示例；恢复编辑时传已有 `sessionId`。
 
 用户要求编辑当前项目时，先完成下方的真实页面接入，再携带 scene 打开；不要把默认示例当成用户项目。只有用户明确要体验示例时才省略 scene。
 
 工具未挂载时运行：
 
 ```sh
-node "<插件根目录>/server/cli.mjs" open_workbench '{"workspace":"<当前项目绝对路径>"}'
+node "<本技能目录>/scripts/motion-desk.mjs" open_workbench '{"workspace":"<当前项目绝对路径>"}'
 ```
 
-插件根目录为本技能所在目录向上两级。然后将返回的 `openInCodex` 参数直接传给宿主 `open_in_codex`。此工具不可用时提供返回的本地 URL。打开请求返回排队状态时说明已排队，不重复打开。
+安装向导生成的本技能目录 `installation.json` 记录源码根目录 `root`、Node 路径 `node` 和数据目录 `dataDirectory`；读取它定位插件源码。没有该文件的原始插件包，其根目录为本技能所在目录向上两级。若 `node` 不在 PATH，使用清单里的 Node 绝对路径运行上述脚本。源码移动后找不到入口时，请用户在新的克隆目录重新运行 `npm run setup`。
+
+按当前宿主的实际能力打开工作台：
+
+- Codex 提供 `open_in_codex` 时，将返回的 `openInCodex` 参数传给它；打开请求返回排队状态时说明已排队，不重复打开。
+- Claude Code 或其他没有侧面板能力的宿主，通过可用的浏览器打开能力访问返回的 `url`；没有浏览器工具时提供可点击的本地链接。不要假装存在 Codex 专用工具。
+
+用户在编辑器中确认后，宿主能直接发回消息时继续处理消息；否则提示用户把工作台复制的交接内容粘贴回当前对话。不要在用户仍在调参时自行读取草稿并应用。
 
 ## 提供当前项目的参数
 
@@ -29,7 +36,7 @@ node "<插件根目录>/server/cli.mjs" open_workbench '{"workspace":"<当前项
 2. 读取插件根目录 public/scene.js 中的场景格式，按真实动画填写 scene。previewUrl 必须指向项目开发页面的完整地址，source 记录实际源码路径和元素位置。
 3. 为目标元素添加 data-motion-id。属性轨道的 elementId 对应这个标识；旧格式未指定 elementId 时使用轨道 id。只在开发环境、目标 DOM 挂载后加载桥接脚本。
 4. 先调用 open_workbench 并传入 workspace 和 scene，从返回的工作台 URL 取得来源（协议、主机、端口，不含会话参数）。项目开发页面使用 import(`${editorOrigin}/bridge.js`) 加载桥接脚本；不要硬编码默认端口。
-5. 使用返回的 openInCodex 在右侧打开工作台。验证显示的是项目真实页面，并检查播放、选中和参数调整可联动。源码改动或热更新替换目标 DOM 后，重新加载预览完成绑定。
+5. 按宿主能力在侧面板或浏览器打开工作台。验证显示的是项目真实页面，并检查播放、选中和参数调整可联动。源码改动或热更新替换目标 DOM 后，重新加载预览完成绑定。
 
 桥接脚本会接管已注册元素的 transform 和 opacity，预览中暂停原动画；项目原有 transform 参与布局时，应使用独立包装元素承载动效。不要将桥接脚本加载到生产环境。
 

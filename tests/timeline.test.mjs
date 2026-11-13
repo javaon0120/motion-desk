@@ -1,10 +1,30 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { resizeGroup, moveTrack } from '../public/timeline.js';
+import { resizeGroup, moveTrack, moveTracks } from '../public/timeline.js';
 import { clone, studioScene } from '../public/scene.js';
 import { sceneSchema } from '../server/store.mjs';
 
 const actionTracks = () => clone(studioScene.tracks.filter((track) => track.elementId === 'action'));
+
+test('多轨道平移共用零点边界，所有关键帧移动相同距离', () => {
+  const tracks = [
+    { delay: 0, duration: 600, keyframes: [{ offset: .2, value: 24 }, { offset: 1, value: 0 }] },
+    { delay: 250, duration: 800, keyframes: [{ offset: 0, value: 0 }, { offset: .5, value: .5 }, { offset: 1, value: 1 }] }
+  ];
+  const result = moveTracks(tracks, -500);
+  result.forEach((timing, i) => timing.keyframes.forEach((frame, j) => {
+    const before = tracks[i].delay + tracks[i].keyframes[j].offset * tracks[i].duration;
+    assert.ok(Math.abs(timing.delay + frame.offset * timing.duration - before + 120) < 1e-8);
+  }));
+  assert.equal(result[0].keyframes[0].offset, 0);
+  assert.equal(tracks[1].delay, 250);
+});
+
+test('多轨道右移到上限时一起停止，保留各自时长和间距', () => {
+  const tracks = [{ delay: 9900, duration: 100 }, { delay: 250, duration: 700 }];
+  const result = moveTracks(tracks, 500);
+  assert.deepEqual(result, [{ delay: 10000, duration: 100 }, { delay: 350, duration: 700 }]);
+});
 
 test('属性整段平移保持所有节点间距、数值和曲线，其他属性不动', () => {
   const tracks = actionTracks(), before = clone(tracks), item = tracks[1];
