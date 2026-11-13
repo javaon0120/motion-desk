@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="color-scheme" content="light">
+    <title>Motion Design</title>
+    <link rel="icon" href="./icon.svg" type="image/svg+xml">
+    <link rel="stylesheet" href="./style.css">
+  </head>
+  <body>
+    <div id="app">
+      <header class="app-header"><h1>Motion Design</h1><button id="handoff" class="primary-button">Send to AI</button></header>
+      <main class="workspace">
+        <section class="preview-panel" aria-label="网页实时预览">
+          <iframe id="preview" title="正在编辑动效的原始网页"></iframe>
+          <div id="preview-status" class="preview-status" role="status">正在连接网页预览…</div>
+        </section>
+        <section class="editor" aria-label="动效编辑器">
+          <div class="timeline-panel">
+            <div class="timeline-toolbar">
+              <div class="playback-controls">
+                <div class="playback-buttons"><button id="play" class="icon-button" title="播放 / 暂停（空格）" aria-label="播放"><img src="./assets/figma/play.svg" alt=""></button><button id="loop" class="icon-button active" title="循环播放" aria-label="循环播放" aria-pressed="true"><img src="./assets/figma/loop.svg" alt=""></button></div>
+                <div class="time-fields"><input id="current-time" type="number" min="0" max="20000" step="10" value="0" aria-label="当前时间（毫秒）"><input id="total-time" type="number" min="100" max="20000" step="100" value="2000" aria-label="时间轴显示范围（毫秒）"></div>
+              </div>
+              <div id="ruler" class="ruler" aria-label="拖动时间尺调整播放位置"></div>
+            </div>
+            <div class="timeline-scroll" id="timeline-scroll"><div class="timeline-body" id="timeline-body"><div id="tracks"></div></div></div>
+            <div id="timeline-scrollbar" class="custom-scrollbar" role="scrollbar" tabindex="0" aria-label="滚动时间轴轨道" aria-controls="timeline-scroll" aria-orientation="vertical" aria-valuemin="0" aria-valuemax="0" aria-valuenow="0" hidden><div id="timeline-scrollbar-thumb" class="scrollbar-thumb"></div></div>
+            <div id="playhead" class="playhead" role="slider" tabindex="0" aria-label="播放位置" aria-valuemin="0" aria-valuemax="2000" aria-valuenow="0"><img src="./assets/figma/playhead.svg" alt=""></div>
+          </div>
+          <aside class="inspector is-empty" id="inspector" aria-label="属性参数" aria-disabled="true">
+            <div class="value-editor"><label class="number-field"><input id="from-value" type="number" step="1" aria-label="起始数值" placeholder="—" disabled><span class="value-unit"></span></label><span class="value-to">to</span><label class="number-field"><input id="to-value" type="number" step="1" aria-label="结束数值" placeholder="—" disabled><span class="value-unit"></span></label></div>
+            <div class="easing-picker"><select id="easing-preset" aria-label="缓动曲线" disabled><option value="" disabled selected>缓动曲线</option><option value="in">Ease in</option><option value="out">Ease out</option><option value="inout">Ease in out</option><option value="linear">Linear</option><option value="back">Back</option><option value="custom">Custom</option></select><img src="./assets/figma/chevron.svg" alt=""></div>
+            <div class="curve-editor">
+              <div id="curve-reference" aria-hidden="true"><img class="reference-curve" src="./assets/figma/curve.svg" alt=""><img class="reference-handle-start" src="./assets/figma/curve-handle-start.svg" alt=""><img class="reference-handle-end" src="./assets/figma/curve-handle-end.svg" alt=""></div>
+              <svg id="curve" viewBox="0 0 190 190" role="img" aria-label="拖动方形控制点调整贝塞尔曲线"><path id="curve-path" fill="none" stroke="#bdbdbd" stroke-width="1"/><path id="curve-handles" fill="none" stroke="#0080ff" stroke-width="1"/><circle id="curve-start" cx="16" cy="170" r="2" fill="#0080ff"/><circle id="curve-end" cx="174" cy="20" r="2" fill="#0080ff"/><rect id="handle-1" width="8" height="8" fill="white" stroke="#0080ff" data-handle="0"/><rect id="handle-2" width="8" height="8" fill="white" stroke="#0080ff" data-handle="2"/></svg>
+              <p class="inspector-placeholder">选择属性节点以编辑</p>
+            </div>
+            <input id="bezier-values" class="bezier-values" aria-label="贝塞尔曲线四个控制值" placeholder="—" spellcheck="false" disabled>
+          </aside>
+        </section>
+      </main>
+    </div>
+    <div class="sr-only" aria-live="polite"><span id="save-status">正在载入</span><span id="change-count"></span><span id="scene-name"></span></div>
+    <dialog id="handoff-dialog"><div class="dialog-heading"><h2>确认动效调整</h2><button class="icon-button close-button" data-close="handoff-dialog" aria-label="关闭">×</button></div><p>将当前参数保存为确定版本，再交给 AI 修改项目源码。</p><div id="change-list" class="change-list"></div><label class="dialog-label">补充说明（选填）<textarea id="handoff-note" rows="2" placeholder="例如：只应用到桌面端"></textarea></label><div id="handoff-result" class="handoff-result" hidden></div><div class="dialog-actions"><button id="download" class="secondary-button">导出 JSON</button><button id="confirm-handoff" class="primary-button">保存并发送</button></div><textarea id="copy-fallback" readonly hidden aria-label="可手动复制的交接内容"></textarea></dialog>
+    <div id="toast" class="toast" role="status" hidden></div>
+    <script type="module" src="./app.js"></script>
+  </body>
+</html>

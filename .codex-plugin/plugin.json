@@ -1,0 +1,19 @@
+{
+  "name": "motion-desk",
+  "version": "0.2.0",
+  "description": "用时间轴和参数面板调整动效，把确认后的参数交回 AI 落地。",
+  "keywords": ["motion", "animation", "动效", "时间轴"],
+  "skills": "./skills",
+  "mcpServers": "./.mcp.json",
+  "interface": {
+    "displayName": "Motion Desk",
+    "shortDescription": "看着网页精调动效，再交给 AI",
+    "longDescription": "打开本地动效工作台，在真实网页旁独立调整属性轨道、关键帧时间、贝塞尔曲线及起止状态。支持撤销、JSON 导出和固定版本交接。",
+    "category": "Creativity",
+    "capabilities": ["Interactive", "Read", "Write"],
+    "defaultPrompt": ["打开动效编辑器", "把当前首屏动效接入 Motion Desk"],
+    "composerIcon": "./public/icon.svg",
+    "logo": "./public/icon.svg",
+    "brandColor": "#0080ff"
+  }
+}

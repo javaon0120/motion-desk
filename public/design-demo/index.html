@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Profile · 网页动效预览</title>
+  <style>
+    * { box-sizing: border-box; }
+    body { margin: 0; background: white; overflow: hidden; }
+    .canvas { position: relative; width: 1600px; height: 885.24px; transform-origin: top left; }
+    .page-image { display: block; position: absolute; top: 0; left: 0; width: 1600px; height: 885.24px; max-width: none; }
+    /* 设计稿内的网页素材分为静态区、标题区和头像区，分别绑定真实动效元素。 */
+    .page-background { clip-path: polygon(evenodd, 0 0, 1600px 0, 1600px 885.24px, 0 885.24px, 0 0, 588px 68px, 1340px 68px, 1340px 115px, 588px 115px, 588px 68px); }
+    .profile-header { position: absolute; left: 588px; top: 68px; width: 752px; height: 47px; transform-origin: left center; }
+    .profile-title { position: absolute; left: 60px; top: 0; width: 692px; height: 47px; overflow: hidden; }
+    .profile-title img { left: -648px; top: -68px; }
+    .avatar { position: absolute; left: 0; top: 0; width: 48px; height: 47px; border-radius: 50%; overflow: hidden; transform-origin: center; }
+    .avatar img { left: -588px; top: -68px; }
+  </style>
+</head>
+<body>
+  <main class="canvas" aria-label="设计稿中的个人主页">
+    <img class="page-image page-background" src="../assets/figma/preview.png" alt="Profile。About me：一位拥有十年经验的产品设计师。作品与工作经历。">
+    <div class="profile-header" data-motion-id="title" aria-label="个人资料标题">
+      <div class="profile-title"><img class="page-image" src="../assets/figma/preview.png" alt="yunbin.jie，Product Designer / Create something i love"></div>
+      <div class="avatar" data-motion-id="avatar" aria-label="头像"><img class="page-image" src="../assets/figma/preview.png" alt="个人头像"></div>
+    </div>
+  </main>
+  <script type="module">
+    const canvas = document.querySelector('.canvas');
+    const resize = () => { canvas.style.transform = `scale(${innerWidth / 1600})`; };
+    addEventListener('resize', resize);
+    resize();
+    await import('../bridge.js');
+  </script>
+</body>
+</html>

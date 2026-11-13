@@ -1,0 +1,129 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-11-12T03:13:54.511229+00:00",
+  "title": "动效工作台设计",
+  "extensions": {
+    "colorMeta": {
+      "ink": { "role": "neutral", "displayName": "主文字", "purpose": "对应根变量 --ink。" },
+      "muted": { "role": "neutral", "displayName": "次文字", "purpose": "对应根变量 --muted，用于保存状态和文本按钮。" },
+      "line": { "role": "neutral", "displayName": "面板分隔线" },
+      "accent": { "role": "primary", "displayName": "操作深绿", "purpose": "主要按钮、品牌标记、曲线路径和输入光标。" },
+      "tint": { "role": "neutral", "displayName": "已声明的浅色底", "purpose": "根变量 --tint 已声明，但当前样式未引用；实际选中背景分别记录。" },
+      "helper-text": { "role": "neutral", "displayName": "修正后的辅助文字", "purpose": "样式末尾对底栏、标尺、单位等文字的最终对比修正。" },
+      "track-background": { "displayName": "加深后的轨道背景", "purpose": "保留场景 --track-color 与暗色混合的原始 CSS 表达式，不合成固定轨道色板。" }
+    },
+    "typographyMeta": {
+      "body": { "displayName": "正文", "purpose": "系统字体栈，用于正文和普通输入。" },
+      "label": { "displayName": "辅助文字", "purpose": "记录最终覆盖后的 11px；底栏、轨道标签和窄屏辅助文字均保留此值。" },
+      "section-title": { "displayName": "分区标题", "purpose": "元素栏与属性分区标题。" },
+      "brand": { "displayName": "品牌名", "purpose": "头部品牌名；不超过 580px 时字号为 13px。" },
+      "inspector-title": { "displayName": "属性对象名称", "purpose": "属性侧栏中当前编辑对象的名称。" },
+      "dialog-title": { "displayName": "对话框标题", "purpose": "连接和交接标题；不超过 580px 时字号为 16px。" },
+      "time": { "displayName": "时间显示", "purpose": "时间轴播放位置采用等宽字体，窄屏最终仍为 11px。" },
+      "source": { "displayName": "源码位置", "purpose": "等宽字体与可换行路径，行高为 1.7。" }
+    },
+    "shadows": [
+      { "name": "segmented-active", "value": "0 1px 3px #263f2912", "purpose": "分段按钮的白色选中表面。" },
+      { "name": "browser-frame", "value": "0 6px 22px #28341e0b, 0 1px 3px #28341e10", "purpose": "真实网页预览容器。" },
+      { "name": "track-inset", "value": "inset 0 0 0 1px #ffffff20", "purpose": "轨道条的轻微内描边。" },
+      { "name": "dialog", "value": "0 20px 80px #18231430", "purpose": "连接与交接对话框。" },
+      { "name": "toast", "value": "0 4px 18px #1c2c2326", "purpose": "底部状态提示浮层。" },
+      { "name": "inspector-overlay", "value": "-8px 0 30px #344a2020", "purpose": "不超过 580px 时打开的属性面板。" }
+    ],
+    "motion": [],
+    "breakpoints": [
+      { "name": "wide", "value": "1500px", "query": "(min-width: 1500px)", "purpose": "左右栏 190px / 290px，轨道标签 190px，预览水平留白 40px。" },
+      { "name": "compact-desktop", "value": "1050px", "query": "(max-width: 1050px)", "purpose": "左右栏 142px / 242px，轨道标签 142px，属性区和预览水平内边距 16px。" },
+      { "name": "compact-workspace", "value": "800px", "query": "(max-width: 800px)", "purpose": "隐藏元素栏，属性栏 232px，时间轴跨两列，轨道标签 126px，显示紧凑恢复按钮。" },
+      { "name": "narrow", "value": "580px", "query": "(max-width: 580px)", "purpose": "单列工作区与 248px 时间轴，轨道标签 104px；属性面板使用 grid-area: auto 和绝对定位，宽度 min(300px,100%)；轨道条内仅居中展示时长，时间尺隐藏偶数位置的刻度标签。" }
+    ]
+  },
+  "components": [
+    {
+      "name": "主操作按钮",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "用于连接或保存交接等主要操作，保留悬停、焦点与禁用状态。",
+      "html": "<button class=\"ds-primary\" type=\"button\">连接网页</button>",
+      "css": ".ds-primary { display: inline-flex; align-items: center; justify-content: center; gap: 7px; height: 34px; padding: 0 13px; border: 0; border-radius: 6px; background: var(--accent, #315947); color: white; font-family: -apple-system, BlinkMacSystemFont, \"Segoe UI\", \"PingFang SC\", \"Microsoft YaHei\", sans-serif; font-size: 12px; font-weight: 550; white-space: nowrap; cursor: pointer; } .ds-primary:not(:disabled):hover { background: #254634; } .ds-primary:focus-visible { outline: 2px solid #6e926f; outline-offset: 3px; } .ds-primary:disabled { opacity: .36; cursor: default; }"
+    },
+    {
+      "name": "次操作按钮",
+      "kind": "button",
+      "refersTo": "button-secondary",
+      "description": "用于使用示例、导出等并列次操作。",
+      "html": "<button class=\"ds-secondary\" type=\"button\">使用示例</button>",
+      "css": ".ds-secondary { display: inline-flex; align-items: center; justify-content: center; gap: 7px; height: 34px; padding: 0 13px; border: 1px solid #d4dad1; border-radius: 6px; background: white; color: var(--ink, #202423); font-family: -apple-system, BlinkMacSystemFont, \"Segoe UI\", \"PingFang SC\", \"Microsoft YaHei\", sans-serif; font-size: 12px; white-space: nowrap; cursor: pointer; } .ds-secondary:not(:disabled):hover { background: #e9ede7; } .ds-secondary:focus-visible { outline: 2px solid #6e926f; outline-offset: 3px; } .ds-secondary:disabled { opacity: .36; cursor: default; }"
+    },
+    {
+      "name": "图标按钮",
+      "kind": "button",
+      "refersTo": "button-icon",
+      "description": "展示桌面预览按钮的尺寸、选中背景与焦点；内联图标取自现有 public/app.js。",
+      "html": "<button class=\"ds-icon ds-active\" type=\"button\" aria-label=\"桌面预览\" aria-pressed=\"true\"><svg class=\"ds-icon-svg\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><rect x=\"3\" y=\"4\" width=\"18\" height=\"13\" rx=\"2\"/><path d=\"M12 17v4m-4 0h8\"/></svg></button>",
+      "css": ".ds-icon { display: inline-flex; align-items: center; justify-content: center; width: 30px; height: 30px; padding: 0; border: 0; border-radius: 6px; background: none; color: #687169; cursor: pointer; } .ds-icon.ds-active { background: #e8eee5; color: var(--accent, #315947); } .ds-icon:not(:disabled):hover { background: #e9ede7; } .ds-icon:focus-visible { outline: 2px solid #6e926f; outline-offset: 3px; } .ds-icon:disabled { opacity: .36; cursor: default; } .ds-icon-svg { display: block; width: 16px; height: 16px; flex: 0 0 auto; stroke-width: 1.6; }"
+    },
+    {
+      "name": "文本按钮",
+      "kind": "button",
+      "refersTo": "button-text",
+      "description": "用于恢复原版等轻量操作。",
+      "html": "<button class=\"ds-text\" type=\"button\">恢复原版</button>",
+      "css": ".ds-text { display: inline-flex; align-items: center; justify-content: center; min-height: 32px; padding: 0 8px; border: 0; border-radius: 6px; background: none; color: var(--muted, #646b67); font-family: -apple-system, BlinkMacSystemFont, \"Segoe UI\", \"PingFang SC\", \"Microsoft YaHei\", sans-serif; font-size: 11px; cursor: pointer; } .ds-text:not(:disabled):hover { background: #e9ede7; } .ds-text:focus-visible { outline: 2px solid #6e926f; outline-offset: 3px; } .ds-text:disabled { opacity: .36; cursor: default; }"
+    },
+    {
+      "name": "预览对比分段切换",
+      "kind": "nav",
+      "refersTo": "segmented-control",
+      "description": "修改版与原版的视觉状态示例，选中白底和阴影沿用实现，不包含切换逻辑。",
+      "html": "<div class=\"ds-segmented\" role=\"group\" aria-label=\"对比模式\"><button class=\"ds-segment ds-active\" type=\"button\" aria-pressed=\"true\">修改版</button><button class=\"ds-segment\" type=\"button\" aria-pressed=\"false\">原版</button></div>",
+      "css": ".ds-segmented { display: inline-flex; align-items: center; padding: 3px; border-radius: 7px; background: #e5e8e0; } .ds-segment { display: inline-flex; align-items: center; justify-content: center; height: 25px; padding: 0 12px; border: 0; border-radius: 4px; background: none; color: #56624f; font-family: -apple-system, BlinkMacSystemFont, \"Segoe UI\", \"PingFang SC\", \"Microsoft YaHei\", sans-serif; font-size: 11px; cursor: pointer; } .ds-segment:not(:disabled):hover { background: #e9ede7; } .ds-segmented .ds-segment.ds-active { background: #fff; color: #263e2d; box-shadow: 0 1px 3px #263f2912; } .ds-segment:focus-visible { outline: 2px solid #6e926f; outline-offset: 3px; } .ds-segment:disabled { opacity: .36; cursor: default; }"
+    },
+    {
+      "name": "时间数值输入",
+      "kind": "input",
+      "refersTo": "number-field",
+      "description": "带可见标签、单位与数值焦点的时间字段；示例不填入未核实的场景参数。",
+      "html": "<label class=\"ds-field-label\">开始时间<span class=\"ds-number-field\"><input class=\"ds-number-input\" type=\"number\" min=\"0\" max=\"10000\" step=\"10\"><span class=\"ds-unit\">ms</span></span></label>",
+      "css": ".ds-field-label { display: block; font-family: -apple-system, BlinkMacSystemFont, \"Segoe UI\", \"PingFang SC\", \"Microsoft YaHei\", sans-serif; font-size: 11px; color: #626f5a; } .ds-number-field { display: flex; align-items: center; gap: 6px; height: 33px; padding: 0 9px; margin-top: 7px; background: #f6f7f3; border: 1px solid #e8ebe4; border-radius: 5px; } .ds-number-input { width: 100%; min-width: 0; padding: 0; border: 0; background: transparent; color: #333e31; font-family: -apple-system, BlinkMacSystemFont, \"Segoe UI\", \"PingFang SC\", \"Microsoft YaHei\", sans-serif; font-size: 12px; font-variant-numeric: tabular-nums; appearance: textfield; caret-color: var(--accent, #315947); } .ds-number-input::-webkit-inner-spin-button { appearance: none; } .ds-number-input:focus-visible { outline: 2px solid #6e926f; outline-offset: 6px; } .ds-unit { color: #626f5a; font-size: 11px; }"
+    },
+    {
+      "name": "网页预览外框",
+      "kind": "card",
+      "refersTo": "browser-frame",
+      "description": "仅展示真实预览容器的外框与地址栏，不加载或模拟网页内容。",
+      "html": "<div class=\"ds-browser-frame\"><div class=\"ds-browser-bar\"><div class=\"ds-traffic-lights\" aria-hidden=\"true\"><i></i><i></i><i></i></div><span class=\"ds-address\">示例网页 / 慢物设计</span></div></div>",
+      "css": ".ds-browser-frame { display: flex; flex-direction: column; width: 100%; max-width: 1280px; background: #fbfaf7; border-radius: 8px; overflow: hidden; box-shadow: 0 6px 22px #28341e0b, 0 1px 3px #28341e10; } .ds-browser-bar { display: flex; align-items: center; justify-content: space-between; height: 31px; min-height: 31px; padding: 0 12px; background: white; border-bottom: 1px solid #edece6; } .ds-address { font-family: -apple-system, BlinkMacSystemFont, \"Segoe UI\", \"PingFang SC\", \"Microsoft YaHei\", sans-serif; font-size: 11px; color: #626f5a; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 70%; } .ds-traffic-lights { display: flex; gap: 4px; } .ds-traffic-lights i { width: 5px; height: 5px; border-radius: 50%; background: #d5d9d0; }"
+    },
+    {
+      "name": "连接对话框表面",
+      "kind": "custom",
+      "refersTo": "dialog",
+      "description": "展示现有对话框的表面、标题和说明；使用普通容器展示，不触发原生弹窗或连接操作。",
+      "html": "<div class=\"ds-dialog\"><div class=\"ds-dialog-heading\"><h2 class=\"ds-dialog-title\">连接你的网页</h2></div><p class=\"ds-dialog-copy\">打开已经实现基础动效的本地页面。页面需要接入预览脚本，才能选择元素和实时调整。</p></div>",
+      "css": ".ds-dialog { width: min(540px, calc(100vw - 30px)); max-height: calc(100dvh - 50px); padding: 26px; border: 0; border-radius: 14px; background: #fff; color: var(--ink, #202423); font-family: -apple-system, BlinkMacSystemFont, \"Segoe UI\", \"PingFang SC\", \"Microsoft YaHei\", sans-serif; box-shadow: 0 20px 80px #18231430; } .ds-dialog-heading { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 14px; } .ds-dialog-title { margin: 0; font-size: 18px; font-weight: 600; letter-spacing: -.3px; } .ds-dialog-copy { margin: 0 0 20px; font-size: 12px; line-height: 1.8; color: #6d7865; } @media (max-width: 580px) { .ds-dialog-title { font-size: 16px; } }"
+    }
+  ],
+  "narrative": {
+    "northStar": "动效工作台",
+    "overview": "这是高频操作的编辑器。真实页面占最大空间；时间轴、参数和选中对象保持对应。默认展示最终画面，只有主动播放才运行动画。\n\n编辑器采用浅灰工作台与白色面板，避免与预览页面争夺注意力。深绿色用于操作与选中反馈，紧凑控件和细分隔线组织信息，不增加装饰性视觉主题。",
+    "keyCharacteristics": [
+      "真实网页预览、时间轴与属性侧栏共同支撑参数调整。",
+      "浅色平面分区，预览和浮层使用柔和阴影。",
+      "辅助文字与底栏统一为 11px，并采用样式末尾的对比修正。"
+    ],
+    "rules": [],
+    "dos": [
+      "保持真实预览、时间轴与属性的对应关系，默认静止展示，主动播放后才运行动画。",
+      "保持辅助文字和底栏的最终 11px 字号与对比修正。",
+      "保留键盘可见焦点、数值单位及轨道选中描边。",
+      "窄屏通过时间轴选择对象，通过切换按钮打开属性面板。"
+    ],
+    "donts": [
+      "不将已声明但未使用的 tint 记作当前选中背景。",
+      "不用前面的浅色、小字号声明覆盖样式末尾的可读性修正。",
+      "不将预览画框宽度当作编辑器断点，不恢复窄屏属性面板的网格占位。",
+      "不增加未经实现验证的视觉风格、动画 token 或产品能力。"
+    ]
+  }
+}
