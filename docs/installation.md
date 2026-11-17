@@ -10,11 +10,13 @@ Motion Desk 安装到你选择的 Agent，供当前用户的所有本地项目�
 npm run setup
 ```
 
-根据提示选择 Codex、Claude Code 或两者。也可以直接指定目标：
+根据提示选择需要的 Agent。支持输入多个名称或编号（逗号分隔），例如 `1,3,6`。也可以直接指定目标：
 
 ```sh
 npm run setup -- --agent codex
 npm run setup -- --agent claude-code
+npm run setup -- --agent cursor,gemini-cli,opencode
+npm run setup -- --agent qwen-code --agent qoder
 npm run setup -- --agent all
 ```
 
@@ -24,7 +26,26 @@ npm run setup -- --agent all
 npm run setup -- --agent all --dry-run
 ```
 
-向导安装 MCP 工具和配套技能。MCP 负责启动工作台、读取场景与交接版本；技能指导 Agent 接入真实网页并将修改应用到源码。日常使用时，Agent 会按需启动工作台。
+查看全部目标与命令名称：
+
+```sh
+npm run setup -- --list
+```
+
+向导配置 MCP 工具和使用指引。已核实原生技能目录的目标会安装技能；其他目标通过 MCP 初始化说明按需读取配套技能。日常使用时，Agent 会按需启动工作台。各目标的路径、格式和版本差异见 [Agent 兼容说明](agent-compatibility.md)。
+
+### 指定实际配置文件
+
+Trae 的 MCP 文件需要从应用设置中确认。Roo Code、多个 IDE 或多个版本配置并存时，向导也可能要求指定路径。交互模式会提示输入；命令行可使用：
+
+```sh
+npm run setup -- --agent trae --config-file 'trae=/绝对路径/mcp.json'
+npm run setup -- --agent roo-code --config-file 'roo-code=/绝对路径/mcp_settings.json'
+```
+
+`--config-file` 可以重复指定，但必须对应已选中的目标。请在工具的 MCP 设置中打开原始配置，使用它实际读取的文件。Codex 的路径由官方 CLI 管理，使用 `CODEX_HOME` 配置。
+
+OpenCode 默认识别已有的 V1/V2 格式，新文件使用 V2。旧版工具尚无配置文件时可以指定 `--opencode-version 1`。向导不会强制将已有配置切换到另一种结构。
 
 ## 检查安装
 
@@ -34,10 +55,11 @@ npm run setup -- --agent all --dry-run
 | --- | --- | --- |
 | Codex | `codex mcp get motion-desk` | 宿主有侧面板能力时在对话右侧打开，否则使用浏览器 |
 | Claude Code | `/mcp` 查看连接，`/motion-desk` 调用技能 | 在浏览器打开返回的本地链接 |
+| 其他工具 | 在该工具的 MCP 设置中检查 `motion-desk` 是否连接 | 在浏览器打开返回的本地链接 |
 
 Codex 注册使用官方 CLI。向导会查找 PATH 中的 `codex`，并在 macOS 上检查桌面应用内的 CLI；找不到时，先执行 `npm install -g @openai/codex`，再运行安装向导。
 
-Claude Code 安装会合并用户配置的 `mcpServers`，保留其他配置和 MCP。已有配置会保存备份，终端会显示备份位置。单个目标安装失败时，会尝试恢复该目标的原配置和原技能，并报告恢复结果。
+安装器只修改本插件的配置节点，保留其他 MCP、设置和 JSONC 注释；使用绝对 Node 路径，支持带空格的源码目录。已有配置会保存备份，终端会显示备份位置。单个目标安装失败时，会尝试恢复该目标的原配置和原技能，并报告恢复结果。多个目标安装中途遇到错误时，已成功安装的目标会保留，终端会列出成功项。
 
 ## 更新与移动目录
 
@@ -67,6 +89,8 @@ npm run setup
 
 配置方式参考 [Codex MCP](https://developers.openai.com/codex/mcp)、[Codex 技能](https://developers.openai.com/codex/skills)、[Claude Code MCP](https://code.claude.com/docs/en/mcp)、[Claude Code 技能](https://code.claude.com/docs/en/skills) 和 [Claude Code 配置目录](https://code.claude.com/docs/en/claude-directory) 的官方文档。
 
+其他目标的安装位置和官方资料见 [Agent 兼容说明](agent-compatibility.md)。
+
 ## 常见问题
 
 | 问题 | 处理方式 |
@@ -74,6 +98,7 @@ npm run setup
 | 提示缺少依赖 | 在克隆目录执行 `npm ci`，再运行 `npm run setup` |
 | 提示未找到 Codex CLI | 安装 Codex CLI，或确认 `codex` 已加入 PATH |
 | 提示同名技能已存在 | 查看提示路径；备份并重命名自行维护的技能后重试 |
+| 提示无法确定配置文件 | 在目标工具中打开原始 MCP 配置，用 `--config-file` 指定实际路径 |
 | 安装后 Agent 没有发现工具 | 重启 Agent 或开启新会话，再用上面的检查方式确认 |
 | 克隆目录移动后无法打开 | 在新目录执行 `npm ci` 和 `npm run setup` |
 | 剪贴板复制失败 | 手动复制弹窗中已选中的文本，再粘贴回 Agent |

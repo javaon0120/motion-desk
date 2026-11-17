@@ -6,11 +6,14 @@ import { mkdtempSync, mkdirSync, readFileSync, writeFileSync, existsSync, rmSync
 import { spawnSync } from 'node:child_process';
 import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio.js';
-import { createInstallPlan, installAgent } from '../scripts/installer.mjs';
+import { createInstallPlan, installAgent, agents, findCodex } from '../scripts/installer.mjs';
+import { parseAgentSelection } from '../scripts/agents.mjs';
+import { parseSetupArguments } from '../scripts/setup.mjs';
+import { parse } from 'jsonc-parser';
 
 function fixture(t, agent, options = {}) {
   const home = mkdtempSync(path.join(tmpdir(), 'motion-desk 安装-'));
-  const plan = createInstallPlan(agent, { home, codexDirectory: path.join(home, '.codex'), claudeDirectory: null, codex: '/测试/Codex CLI', ...options });
+  const plan = createInstallPlan(agent, { home, env: {}, codexDirectory: path.join(home, '.codex'), claudeDirectory: null, codex: '/测试/Codex CLI', ...options });
   t.after(() => {
     const runtime = path.join(plan.dataDirectory, 'runtime.json');
     if (existsSync(runtime)) {
@@ -129,4 +132,120 @@ test('安装后的 MCP 与技能脚本能从其他目录使用同一数据目录
     assert.equal(fallback.status, 0, fallback.stderr);
     assert.equal(JSON.parse(fallback.stdout).id, session.sessionId);
   } finally { await client.close(); }
+});
+
+test('多选支持名称、编号、重复参数和去重，错误目标在安装前被拒绝', () => {
+  assert.deepEqual(parseAgentSelection('1,3，6 cursor'), ['codex', 'cursor', 'gemini-cli']);
+  assert.deepEqual(parseSetupArguments(['--agent', 'cursor,gemini-cli', '--agent', 'cursor']).selected, ['cursor', 'gemini-cli']);
+  assert.deepEqual(parseAgentSelection('all'), Object.keys(agents));
+  for (const invalid of ['', '0', '999', 'constructor', 'all,cursor', 'unknown']) assert.throws(() => parseAgentSelection(invalid));
+  assert.throws(() => parseSetupArguments(['--agent']), /缺少参数/);
+  assert.throws(() => parseSetupArguments(['--config-file', 'cursor=relative.json']), /绝对路径/);
+});
+
+const newHosts = [
+  ['cursor', 'standard'], ['windsurf', 'standard'], ['copilot', 'copilot'],
+  ['gemini-cli', 'standard'], ['opencode', 'opencode-v2'], ['qwen-code', 'standard'],
+  ['qoder', 'standard'], ['cline', 'standard'], ['roo-code', 'standard'],
+  ['kilo-code', 'local'], ['antigravity', 'standard'], ['trae', 'standard']
+];
+
+for (const [agent, schema] of newHosts) {
+  test(`${agents[agent]}：配置合并、注释保留、重装以及真实 MCP 连接`, async (t) => {
+    const plan = fixture(t, agent);
+    if (!plan.configFile) plan.configFile = path.join(plan.dataDirectory, '指定的 MCP 配置.json');
+    mkdirSync(path.dirname(plan.configFile), { recursive: true });
+    const section = schema === 'opencode-v2' ? '"mcp": {"servers": {"other": {"type":"local","command":["other"]}}}'
+      : schema === 'local' ? '"mcp": {"other": {"type":"local","command":["other"]}}'
+        : '"mcpServers": {"other": {"command":"other"}}';
+    const original = `{\n  // 用户原有注释\n  "theme": "dark",\n  ${section},\n}\n`;
+    writeFileSync(plan.configFile, original);
+    const result = installAgent(plan);
+    const content = readFileSync(plan.configFile, 'utf8');
+    assert.ok(content.includes('// 用户原有注释'));
+    assert.equal(readFileSync(result.backup, 'utf8'), original);
+    const errors = [], config = parse(content, errors, { allowTrailingComma: true });
+    assert.deepEqual(errors, []);
+    assert.equal(config.theme, 'dark');
+    const servers = schema === 'opencode-v2' ? config.mcp.servers : schema === 'local' ? config.mcp : config.mcpServers;
+    assert.equal(servers.other.command?.[0] === 'other' || servers.other.command === 'other', true);
+    const installed = servers['motion-desk'];
+    if (schema === 'local' || schema === 'opencode-v2') {
+      assert.equal(installed.type, 'local');
+      assert.deepEqual(installed.command, [process.execPath, path.join(plan.root, 'server/mcp.mjs')]);
+      assert.equal(installed.environment.MOTION_DESK_DATA_DIR, plan.dataDirectory);
+      if (schema === 'opencode-v2') assert.equal(installed.enabled, undefined);
+    } else {
+      assert.equal(installed.command, process.execPath);
+      assert.deepEqual(installed.args, [path.join(plan.root, 'server/mcp.mjs')]);
+      assert.equal(installed.env.MOTION_DESK_DATA_DIR, plan.dataDirectory);
+      if (schema === 'copilot') { assert.equal(installed.type, 'local'); assert.deepEqual(installed.tools, ['*']); }
+    }
+    installAgent(plan);
+    assert.equal(readFileSync(plan.configFile, 'utf8'), content);
+    const command = Array.isArray(installed.command) ? installed.command[0] : installed.command;
+    const args = Array.isArray(installed.command) ? installed.command.slice(1) : installed.args;
+    const client = new Client({ name: '多宿主安装验证', version: '1.0.0' });
+    const transport = new StdioClientTransport({ command, args, env: { ...process.env, ...(installed.environment || installed.env) }, cwd: tmpdir(), stderr: 'pipe' });
+    try {
+      await client.connect(transport);
+      assert.deepEqual((await client.listTools()).tools.map((tool) => tool.name).sort(), ['get_handoff', 'get_session', 'list_sessions', 'open_workbench']);
+      assert.ok(client.getInstructions().includes('skills/motion-desk/SKILL.md'));
+    } finally { await client.close(); }
+  });
+}
+
+test('OpenCode 已有 V1 配置自动沿用原结构，也可以显式选择版本', (t) => {
+  const base = fixture(t, 'opencode');
+  mkdirSync(path.dirname(base.configFile), { recursive: true });
+  writeFileSync(base.configFile, '{"mcp":{"existing":{"type":"local","command":["other"]}}}');
+  const plan = createInstallPlan('opencode', { home: path.dirname(path.dirname(path.dirname(base.configFile))), env: {}, configFile: base.configFile });
+  installAgent(plan);
+  const config = parse(readFileSync(plan.configFile, 'utf8'));
+  assert.ok(config.mcp['motion-desk']);
+  assert.equal(config.mcp.servers, undefined);
+  assert.throws(() => createInstallPlan('opencode', { env: {}, configFile: base.configFile, openCodeVersion: '2' }), /版本与已有配置不一致/);
+  const explicit = createInstallPlan('opencode', { home: path.dirname(base.dataDirectory), env: {}, configFile: `${base.configFile}.new`, openCodeVersion: '2' });
+  assert.deepEqual(explicit.configKey, ['mcp', 'servers']);
+});
+
+test('未知配置位置与无效嵌套结构在任何文件写入前被拒绝', (t) => {
+  const trae = fixture(t, 'trae');
+  assert.throws(() => installAgent(trae), /config-file/);
+  const plan = fixture(t, 'cursor');
+  mkdirSync(path.dirname(plan.configFile), { recursive: true });
+  const original = '// 保留\n{"mcpServers": []}';
+  writeFileSync(plan.configFile, original);
+  assert.throws(() => installAgent(plan), /必须是对象/);
+  assert.equal(readFileSync(plan.configFile, 'utf8'), original);
+  assert.equal(existsSync(plan.skillDirectory), false);
+  assert.deepEqual(readdirSync(path.dirname(plan.configFile)), ['mcp.json']);
+});
+
+test('Cline 区分已存在的 IDE 配置与 CLI；多配置时要求指定文件', (t) => {
+  const base = fixture(t, 'cline');
+  const home = path.dirname(path.dirname(path.dirname(path.dirname(base.configFile))));
+  const editorFile = (editor) => path.join(home, '.config', editor, 'User/globalStorage/saoudrizwan.claude-dev/settings/cline_mcp_settings.json');
+  mkdirSync(path.dirname(editorFile('Code')), { recursive: true });
+  writeFileSync(editorFile('Code'), '{}');
+  assert.equal(createInstallPlan('cline', { home, env: {}, platform: 'linux' }).configFile, editorFile('Code'));
+  mkdirSync(path.dirname(editorFile('Cursor')), { recursive: true });
+  writeFileSync(editorFile('Cursor'), '{}');
+  assert.equal(createInstallPlan('cline', { home, env: {}, platform: 'linux' }).configFile, null);
+});
+
+test('Windows npm 入口通过 Node 执行，避免拼接 cmd 命令', (t) => {
+  const plan = fixture(t, 'codex');
+  const bin = path.join(plan.dataDirectory, '带 空格的 npm');
+  const launcher = path.join(bin, 'node_modules/@openai/codex/bin/codex.js');
+  mkdirSync(path.dirname(launcher), { recursive: true });
+  writeFileSync(launcher, '// 测试用入口');
+  assert.equal(findCodex({ home: bin, platform: 'win32', env: { PATH: bin } }), launcher);
+  plan.codex = launcher;
+  installAgent(plan, { run: (command, args) => {
+    assert.equal(command, process.execPath);
+    assert.equal(args[0], launcher);
+    assert.deepEqual(args.slice(1, 4), ['mcp', 'add', 'motion-desk']);
+    return { status: 0 };
+  } });
 });

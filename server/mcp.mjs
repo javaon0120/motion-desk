@@ -4,8 +4,13 @@ import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js"
 import { z } from "zod";
 import { callTool } from "./tools.mjs";
 import { sceneSchema } from "./store.mjs";
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 
-const server = new McpServer({ name: "motion-desk", version: "0.2.0" });
+const skillPath = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../skills/motion-desk/SKILL.md');
+const server = new McpServer({ name: "motion-desk", version: "0.2.0" }, {
+  instructions: `Motion Desk 是网页动效编辑器。用户要求调整当前项目动效时，先读取 ${skillPath}，根据真实源码注册 scene，再调用 open_workbench；只有体验示例时才省略 scene。用浏览器打开返回的 url；仅当宿主提供 Codex 侧面板工具时使用 openInCodex。用户点击“复制给 AI”并将交接内容粘贴回对话后，按 sessionId 和 version 调用 get_handoff，再将确认参数应用到源码。不要自行应用仍在编辑的草稿。`
+});
 const register = (name, description, inputSchema, readOnlyHint) => server.registerTool(name, {
   description, inputSchema,
   annotations: { readOnlyHint, destructiveHint: false, openWorldHint: false }

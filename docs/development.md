@@ -20,6 +20,8 @@ npm test
 
 Codex 注册参数通过隔离测试验证，测试不会改写真实用户配置。生成的 MCP 配置和技能脚本通过真实 stdio 服务验证；这不代替各 Agent 宿主内的完整使用验证。拖动、选择、播放及预览联动还需结合浏览器检查。
 
+新增安装目标在 `scripts/agents.mjs` 中维护名称、路径和配置格式；通用合并、备份、重装和恢复逻辑位于 `scripts/installer.mjs`。`tests/installer.test.mjs` 验证各格式下的配置保留与真实 MCP 连接。修改目标时，应先核实该工具的官方配置位置和版本差异，更新 [兼容说明](agent-compatibility.md)。
+
 ## 目录结构
 
 ```text
@@ -45,7 +47,7 @@ docs/            使用、接入与开发说明
 
 ## 其他宿主与插件包
 
-Codex 和 Claude Code 的日常安装使用 [安装向导](installation.md)。其他 MCP 客户端可以配置以下 stdio 服务，路径替换为本机克隆目录的绝对路径：
+支持列表内的工具通过 [安装向导](installation.md) 安装。未列入的 MCP 客户端可以配置以下 stdio 服务，路径替换为本机克隆目录的绝对路径：
 
 ```json
 {

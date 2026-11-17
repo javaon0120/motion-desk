@@ -18,11 +18,11 @@ Motion Desk 让你在真实网页预览旁，直接拖动时间轴、调整关�
 - **同时调整多条轨道**：按住 Shift 跨元素多选，一起拖动并保留相对时序。
 - **把结果交给 AI**：查看修改差异，一键复制调整内容，粘贴给 AI 应用到源码；支持自动保存、撤销和重做。
 
-支持安装到 **Codex** 和 **Claude Code**。Codex 在具备侧面板能力时可在对话旁打开编辑器；Claude Code 通过浏览器打开。
+支持安装到 **Codex、Claude Code、Cursor、Windsurf、GitHub Copilot** 等 14 种 AI 编程工具，完整列表见 [Agent 兼容说明](docs/agent-compatibility.md)。Codex 在具备侧面板能力时可在对话旁打开编辑器；其他工具通过浏览器打开。
 
 ## 安装
 
-准备好 Node.js 20 或更新版本、npm，以及你使用的 Codex 或 Claude Code。
+准备好 Node.js 20 或更新版本、npm，以及你使用的 AI 编程工具。
 
 ```sh
 git clone https://github.com/javaon0120/motion-desk.git
@@ -31,15 +31,13 @@ npm ci
 npm run setup
 ```
 
-按提示选择要安装到的 Agent：
+向导会列出可安装的 Agent。支持多选，例如输入以下编号即可同时安装到 Codex、Cursor 和 Gemini CLI：
 
 ```text
-1. Codex
-2. Claude Code
-3. 两者都安装
+1,3,6
 ```
 
-向导会配置工具连接和使用技能，安装后可在所选 Agent 的所有本地项目中使用。完成后重启 Agent 或开启新会话。
+向导会配置工具连接和使用指引，安装后可在所选 Agent 的本地项目中使用。Trae、无法自动定位的 IDE 配置，或多个配置文件并存时，向导会提示指定实际 MCP 配置文件。完成后重启 Agent 或开启新会话。
 
 安装问题、指定安装目标和更新方法见 [安装指南](docs/installation.md)。
 
