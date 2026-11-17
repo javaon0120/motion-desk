@@ -60,7 +60,7 @@ Codex 和 Claude Code 的日常安装使用 [安装向导](installation.md)。�
 
 仓库也保留 [.codex-plugin/plugin.json](../.codex-plugin/plugin.json)、[.mcp.json](../.mcp.json) 和 [配套技能](../skills/motion-desk/SKILL.md)，供支持本地插件包的宿主加载。当前未发布到公共插件市场。
 
-工作台返回浏览器 `url` 和 `openInCodex` 参数。有侧面板能力的宿主可使用后者；其他宿主打开浏览器链接。网页向对话直接发送消息依赖宿主的 `window.openai.sendFollowUpMessage` 能力，普通浏览器使用复制交接内容的方式。
+工作台返回浏览器 `url` 和 `openInCodex` 参数。有侧面板能力的宿主可使用后者；其他宿主打开浏览器链接。用户统一通过“复制给 AI”将交接内容复制到剪贴板，再粘贴回 Agent 对话。
 
 ## 本地数据
 

@@ -10,7 +10,7 @@
   </head>
   <body>
     <div id="app">
-      <header class="app-header"><h1>Motion Design</h1><button id="handoff" class="primary-button">Send to AI</button></header>
+      <header class="app-header"><h1>Motion Design</h1><button id="handoff" class="primary-button">交给 AI</button></header>
       <main class="workspace">
         <section class="preview-panel" aria-label="网页实时预览">
           <iframe id="preview" title="正在编辑动效的原始网页"></iframe>
@@ -43,7 +43,7 @@
       </main>
     </div>
     <div class="sr-only" aria-live="polite"><span id="save-status">正在载入</span><span id="change-count"></span><span id="scene-name"></span></div>
-    <dialog id="handoff-dialog"><div class="dialog-heading"><h2>确认动效调整</h2><button class="icon-button close-button" data-close="handoff-dialog" aria-label="关闭">×</button></div><p>将当前参数保存为确定版本，再交给 AI 修改项目源码。</p><div id="change-list" class="change-list"></div><label class="dialog-label">补充说明（选填）<textarea id="handoff-note" rows="2" placeholder="例如：只应用到桌面端"></textarea></label><div id="handoff-result" class="handoff-result" hidden></div><div class="dialog-actions"><button id="download" class="secondary-button">导出 JSON</button><button id="confirm-handoff" class="primary-button">保存并发送</button></div><textarea id="copy-fallback" readonly hidden aria-label="可手动复制的交接内容"></textarea></dialog>
+    <dialog id="handoff-dialog"><div class="dialog-heading"><h2>复制动效调整</h2><button class="icon-button close-button" data-close="handoff-dialog" aria-label="关闭">×</button></div><p>复制调整内容，粘贴给 AI，让它应用到项目代码。</p><div id="change-list" class="change-list"></div><label class="dialog-label">补充说明（选填）<textarea id="handoff-note" rows="2" placeholder="例如：只应用到桌面端"></textarea></label><div id="handoff-result" class="handoff-result" role="status" hidden></div><div class="dialog-actions"><button id="confirm-handoff" class="primary-button">复制给 AI</button></div><textarea id="copy-fallback" readonly hidden aria-label="可手动复制的交接内容"></textarea></dialog>
     <div id="toast" class="toast" role="status" hidden></div>
     <script type="module" src="./app.js"></script>
   </body>

@@ -92,7 +92,7 @@ export class Store {
     return session;
   }
   assertRevision(session, revision) {
-    if (revision !== session.revision) throw Object.assign(new Error("另一个窗口已修改该场景。当前修改仍保留在页面，请先导出 JSON，再刷新读取最新版本。"), { status: 409 });
+    if (revision !== session.revision) throw Object.assign(new Error("另一个窗口已修改该场景，当前修改尚未保存。请保留当前窗口，让 AI 协助处理冲突。"), { status: 409 });
   }
   handoff(id, expectedRevision, note = "") {
     if (typeof note !== "string" || note.length > 3000) throw Object.assign(new Error("补充说明最多 3000 字"), { status: 400 });

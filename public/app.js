@@ -629,38 +629,33 @@ $('#handoff').onclick = () => {
   $('#change-list').innerHTML = changes.length ? changes.map((change) => `<div class="change-item"><div>${escapeHtml(change.name)} · ${fieldNames[change.field] || escapeHtml(change.field)}</div><code>${escapeHtml(shortValue(change.before, change.field))} → ${escapeHtml(shortValue(change.after, change.field))}</code></div>`).join('') : '<div class="change-item">尚未修改，将交付当前完整场景。</div>';
   $('#handoff-result').hidden = true;
   $('#copy-fallback').hidden = true;
-  $('#confirm-handoff').textContent = '保存并发送';
+  $('#confirm-handoff').textContent = '复制给 AI';
   $('#handoff-dialog').showModal();
-};
-$('#download').onclick = () => {
-  const blob = new Blob([JSON.stringify({ schemaVersion: 1, scene, original, changes: changesBetween(original, scene) }, null, 2)], { type: 'application/json' });
-  const url = URL.createObjectURL(blob), link = document.createElement('a');
-  link.href = url; link.download = `motion-${scene.id}.json`; link.click(); URL.revokeObjectURL(url);
-  toast('已导出当前动效规格');
 };
 $('#confirm-handoff').onclick = async () => {
   const button = $('#confirm-handoff');
   button.disabled = true;
+  button.textContent = '正在复制…';
   try {
     await flushSave();
     if (saveError) throw saveError;
     const note = $('#handoff-note').value.trim();
     if (!lastHandoff || lastHandoff.note !== note || lastHandoff.revision !== session.revision) lastHandoff = await api(`/sessions/${sessionId}/handoffs`, { expectedRevision: session.revision, note });
-    let sent = false;
-    if (typeof window.openai?.sendFollowUpMessage === 'function') {
-      try { await window.openai.sendFollowUpMessage({ prompt: lastHandoff.prompt }); sent = true; }
-      catch { toast('宿主发送失败，交接版本已保留，可复制后发送'); }
-    }
     const result = $('#handoff-result');
     result.hidden = false;
-    if (sent) { result.textContent = `版本 ${lastHandoff.version} 已保存并发送到当前对话。`; button.textContent = '再次发送'; }
-    else {
-      try { await navigator.clipboard.writeText(lastHandoff.prompt); result.textContent = `版本 ${lastHandoff.version} 已保存，交接内容已复制。请粘贴到对话发送。`; }
-      catch { $('#copy-fallback').hidden = false; $('#copy-fallback').value = lastHandoff.prompt; result.textContent = `版本 ${lastHandoff.version} 已保存，请复制下方内容发到对话。`; }
-      button.textContent = '复制交接内容';
+    $('#copy-fallback').hidden = true;
+    try {
+      await navigator.clipboard.writeText(lastHandoff.prompt);
+      result.textContent = '已复制，粘贴给 AI 即可。';
+    } catch {
+      const fallback = $('#copy-fallback');
+      fallback.hidden = false;
+      fallback.value = lastHandoff.prompt;
+      fallback.focus(); fallback.select();
+      result.textContent = '无法访问剪贴板，请复制下方已选中的内容，再粘贴给 AI。';
     }
-  } catch (error) { toast(`交接未完成：${error.message}`); }
-  finally { button.disabled = false; }
+  } catch (error) { toast(`复制未完成：${error.message}`); }
+  finally { button.disabled = false; button.textContent = '复制给 AI'; }
 };
 
 try {
