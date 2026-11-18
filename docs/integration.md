@@ -96,6 +96,7 @@ version：交接中的确定版本号
 | `tracks[].from`、`to` | 完整状态对象，包含 `x`、`y`、`scale` 和 `opacity` |
 | `tracks[].keyframes` | 可选的 `{ offset, value }` 数组，2–30 个节点；offset 在 0–1 内且严格递增 |
 | `tracks[].enabled` | `false` 表示停用轨道 |
+| `tracks[].disabledProperties` | 旧版整元素轨道可按属性停用，例如 `["y"]` 只停用位移 Y；独立属性轨道使用 `enabled` |
 | `tracks[].source` | 真实源码文件、元素定位及补充位置说明 |
 
 存在关键帧时，实际采样使用关键帧数值；起止值应与首尾关键帧保持一致。透明度使用 0–1、缩放使用 0.01–5；编辑面板会把两者显示为百分比。

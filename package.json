@@ -11,7 +11,7 @@
     "open": "node server/cli.mjs open_workbench",
     "mcp": "node server/mcp.mjs",
     "test": "node --test tests/*.test.mjs",
-    "check": "node --check public/app.js && node --check public/bridge.js && node --check server/server.mjs && node --check server/mcp.mjs && node --check scripts/setup.mjs && node --check scripts/installer.mjs && node --check scripts/agents.mjs && node --check skills/motion-desk/scripts/motion-desk.mjs"
+    "check": "node --check public/app.js && node --check public/bridge.js && node --check public/visibility.js && node --check server/server.mjs && node --check server/mcp.mjs && node --check scripts/setup.mjs && node --check scripts/installer.mjs && node --check scripts/agents.mjs && node --check skills/motion-desk/scripts/motion-desk.mjs"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.25.1",

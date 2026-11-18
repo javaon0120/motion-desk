@@ -1,4 +1,5 @@
 import { sampleScene, transformString } from "./scene.js";
+import { isPropertyEnabled } from './visibility.js';
 // 在开发环境中接入：为元素添加 data-motion-id，再从工作台加载这个模块。
 const moduleUrl = new URL(import.meta.url);
 const editorOrigin = moduleUrl.origin;
@@ -58,8 +59,8 @@ function renderScene() {
       const tracks = activeScene.tracks.filter((track) => (track.elementId || track.id) === id && track.enabled !== false);
       const details = layoutDetails.get(id);
       // 缩放仍沿用原有中心点；补偿边框移动，让受控的左上角坐标保持准确。
-      if (tracks.some((track) => !track.property || track.property === 'x')) state.x += details.originX * (state.scale - 1);
-      if (tracks.some((track) => !track.property || track.property === 'y')) state.y += details.originY * (state.scale - 1);
+      if (tracks.some((track) => (!track.property || track.property === 'x') && isPropertyEnabled(track, 'x'))) state.x += details.originX * (state.scale - 1);
+      if (tracks.some((track) => (!track.property || track.property === 'y') && isPropertyEnabled(track, 'y'))) state.y += details.originY * (state.scale - 1);
     }
     Object.assign(element.style, { transform: transformString(state), opacity: state.opacity });
   }

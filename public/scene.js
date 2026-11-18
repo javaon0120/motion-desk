@@ -1,3 +1,5 @@
+import { isPropertyEnabled } from './visibility.js';
+
 export const demoScene = {
   id: "studio-intro",
   name: "首屏入场",
@@ -40,7 +42,7 @@ export function changesBetween(original, scene) {
   return scene.tracks.flatMap((track) => {
     const previous = original.tracks.find((item) => item.id === track.id);
     if (!previous) return [{ id: track.id, name: track.name, field: "新增元素", before: null, after: track }];
-    const fields = ["delay", "duration", "easing", "from", "to", "keyframes", "enabled"];
+    const fields = ["delay", "duration", "easing", "from", "to", "keyframes", "enabled", "disabledProperties"];
     return fields.filter((key) => JSON.stringify(previous[key]) !== JSON.stringify(track[key]))
       .map((field) => ({ id: track.id, name: track.property ? `${track.name} / ${track.property}` : track.name, field, before: previous[field], after: track[field] }));
   });
@@ -121,8 +123,10 @@ export function sampleScene(scene, time, origins = scene.positioning?.origins) {
         state[track.property] = scene.positioning && ['x', 'y'].includes(track.property)
           ? value - origin[track.property] : value;
       } else {
-        Object.assign(state, value);
-        if (scene.positioning) { state.x -= origin.x; state.y -= origin.y; }
+        for (const property of Object.keys(neutral)) {
+          if (!isPropertyEnabled(track, property)) continue;
+          state[property] = scene.positioning && ['x', 'y'].includes(property) ? value[property] - origin[property] : value[property];
+        }
       }
     }
     result.set(id, state);

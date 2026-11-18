@@ -25,6 +25,7 @@ export const sceneSchema = z.object({
     elementId: z.string().regex(/^[a-zA-Z0-9_-]{1,80}$/).optional(),
     property: z.enum(["x", "y", "scale", "opacity"]).optional(),
     enabled: z.boolean().optional(),
+    disabledProperties: z.array(z.enum(['x', 'y', 'scale', 'opacity'])).max(4).refine((items) => new Set(items).size === items.length, '停用属性不能重复').optional(),
     keyframes: z.array(z.object({ offset: numeric(0, 1), value: coordinate() })).min(2).max(30).optional(),
     name: z.string().min(1).max(100),
     type: z.string().max(30).default("容器"),
@@ -37,6 +38,7 @@ export const sceneSchema = z.object({
     to: stateSchema
   })).min(1).max(30)
 }).refine((scene) => new Set(scene.tracks.map((track) => track.id)).size === scene.tracks.length, "轨道标识不能重复")
+  .refine((scene) => scene.tracks.every((track) => !track.property || !track.disabledProperties?.length), '独立属性轨道使用 enabled 控制启用状态')
   .refine((scene) => scene.tracks.every((track) => !track.keyframes || (track.property && track.keyframes.every((frame, index, frames) =>
     (!index || frame.offset > frames[index - 1].offset) && (track.property === "opacity" ? frame.value >= 0 && frame.value <= 1 : track.property === "scale" ? frame.value >= .01 && frame.value <= 5 : true)))), "关键帧必须按时间递增，数值必须符合属性范围")
   .refine((scene) => !scene.positioning || scene.tracks.every((track) => Object.hasOwn(scene.positioning.origins, track.elementId || track.id)), "页面坐标必须包含所有元素的布局原点")
@@ -102,7 +104,7 @@ export class Store {
     const filename = `handoff-${id}-v${version}`;
     const targetPath = this.file(filename);
     const changes = changesBetween(session.original, session.scene);
-    const labels = { delay: "开始时间", duration: "时长", easing: "曲线", from: "起始状态", to: "结束状态" };
+    const labels = { delay: "开始时间", duration: "时长", easing: "曲线", from: "起始状态", to: "结束状态", enabled: '轨道启用状态', disabledProperties: '停用属性' };
     const summary = changes.length
       ? changes.map((change) => `- ${change.name} / ${labels[change.field] || change.field}：${JSON.stringify(change.before)} → ${JSON.stringify(change.after)}`).join("\n")
       : "- 按当前完整场景实现，参数尚未调整。";

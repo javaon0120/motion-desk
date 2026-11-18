@@ -46,6 +46,8 @@ node "<本技能目录>/scripts/motion-desk.mjs" open_workbench '{"workspace":"<
 
 旧格式的整元素轨道仍可读取，各属性共用时序。接入新的错开动画时应使用属性轨道。遇到物理弹簧、滚动联动、路径动画或无法准确映射的实现，说明具体限制，不伪造提取结果。
 
+旧格式轨道的 `disabledProperties` 列出单独停用的属性，例如 `["y"]` 仅停用该元素的 Y 动画，其他属性继续生效；`enabled=false` 则停用整条轨道。应用交接时保留这些属性级开关，避免把单个属性的停用扩大到整个元素或其他动画。独立属性轨道继续使用自己的 `enabled`。
+
 编辑器里的 Position X/Y 是元素左上角相对于网页左上角的绝对坐标（CSS px，包含滚动距离）。原来的位移场景接入后自动换算。交接中 `scene.positioning.space="document"` 表示 from/to 的 x/y 及对应关键帧都是页面坐标，`origins` 为原布局位置，`viewport` 为参考视口。落地时根据真实布局换算 transform 位移，不要直接把页面坐标作为 translate，也不要求改成 CSS 绝对定位；同时保留缩放时受控方向的左上角位置。
 
 ## 读取并落地

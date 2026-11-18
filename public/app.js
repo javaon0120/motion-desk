@@ -2,6 +2,7 @@ import { clone, sceneDuration, timelineDuration, changesBetween, documentPositio
 import { curveGeometry, dragCurveControl, curveBadgePath } from './curve.js';
 import { resizeGroup, moveTracks } from './timeline.js';
 import { isRowSelected, updateSelection, selectionTracks } from './selection.js';
+import { isPropertyEnabled, toggleProperty } from './visibility.js';
 
 const $ = (selector) => document.querySelector(selector);
 const asset = (name) => `./assets/figma/${name}.svg`;
@@ -256,7 +257,7 @@ function renderTracks() {
     return `<section class="track-group ${isSelected ? 'selected' : ''} ${collapsed.has(group.id) ? 'collapsed' : ''}" data-group="${escapeHtml(group.id)}"><div class="track-row group-row"><div class="track-label group-label"><button class="label-select" data-select="${escapeHtml(group.tracks[0].id)}">${escapeHtml(group.name)}</button><button class="row-icon collapse-button" data-collapse="${escapeHtml(group.id)}" aria-label="${collapsed.has(group.id) ? '展开' : '折叠'} ${escapeHtml(group.name)}" aria-expanded="${!collapsed.has(group.id)}">${img('collapse')}</button></div><div class="track-lane"><div class="lane-content"><div class="summary-bar" data-summary="${escapeHtml(group.id)}" style="--start:${start / total * 100}%;--length:${(end - start) / total * 100}%" tabindex="0" role="group" aria-label="${escapeHtml(group.name)} 整组时间条" title="拖动中间平移，拖动两端缩放">${barGrip('start', group.name, start)}${barGrip('end', group.name, end)}</div></div></div></div>${collapsed.has(group.id) ? '' : rows.map(({ item, property }, rowIndex) => {
       const selected = isRowSelected(selectedRows, item.id, property);
       const frames = framesFor(item, property);
-      const disabled = item.enabled === false;
+      const disabled = !isPropertyEnabled(item, property);
       return `<div class="track-row property-row ${selected ? 'selected' : ''} ${disabled ? 'disabled' : ''}" data-track="${escapeHtml(item.id)}" data-property="${property}"><div class="track-label property-label">${img(rowIndex === rows.length - 1 ? 'tree-end' : 'tree-start', 'tree-icon')}<button class="label-select" data-select="${escapeHtml(item.id)}" data-property="${property}">${propertyNames[property]}</button><button class="row-icon" data-toggle="${escapeHtml(item.id)}" aria-label="${disabled ? '启用' : '停用'} ${escapeHtml(group.name)} ${propertyNames[property]}" aria-pressed="${!disabled}">${img(disabled ? 'eye-hidden' : 'eye')}</button></div><div class="track-lane"><div class="lane-content"><div class="property-motion" style="--start:${item.delay / total * 100}%;--length:${item.duration / total * 100}%">${frames.slice(0, -1).map((frame, i) => `<div class="channel-line" style="left:${frame.offset * 100}%;width:${(frames[i + 1].offset - frame.offset) * 100}%"></div>`).join('')}${frames.map((frame, i) => `<button class="keyframe" style="left:${frame.offset * 100}%" data-keyframe="${i}" title="${Math.round(item.delay + frame.offset * item.duration)}ms · ${frame.value}" aria-label="${escapeHtml(group.name)} ${propertyNames[property]} 关键帧 ${i + 1}">${keyframeIcon}</button>`).join('')}${disabled ? '' : frames.slice(0, -1).map((frame, i) => `<button class="easing-badge" data-select="${escapeHtml(item.id)}" data-property="${property}" style="left:${(frame.offset + frames[i + 1].offset) / 2 * 100}%" aria-label="调整 ${escapeHtml(group.name)} ${propertyNames[property]} 曲线">${curveBadgeIcon(item.easing)}</button>`).join('')}</div></div></div></div>`;
     }).join('')}</section>`;
   }).join('');
@@ -352,7 +353,7 @@ document.addEventListener('click', (event) => {
     renderTracks(); renderInspector(); postPreview();
   }
   const toggle = event.target.closest('[data-toggle]');
-  if (toggle) mutate(() => { const item = scene.tracks.find((item) => item.id === toggle.dataset.toggle); item.enabled = item.enabled === false; });
+  if (toggle) mutate(() => { const item = scene.tracks.find((item) => item.id === toggle.dataset.toggle); toggleProperty(item, toggle.closest('[data-property]').dataset.property); });
   const close = event.target.closest('[data-close]');
   if (close) $(`#${close.dataset.close}`).close();
 });
@@ -615,7 +616,7 @@ const scrollbarResize = new ResizeObserver(updateScrollbar);
 scrollbarResize.observe(scrollView);
 scrollbarResize.observe($('#tracks'));
 
-const fieldNames = { delay: '开始时间', duration: '持续时长', easing: '缓动曲线', from: '起始状态', to: '结束状态', keyframes: '关键帧', enabled: '轨道启用状态' };
+const fieldNames = { delay: '开始时间', duration: '持续时长', easing: '缓动曲线', from: '起始状态', to: '结束状态', keyframes: '关键帧', enabled: '轨道启用状态', disabledProperties: '停用属性' };
 function shortValue(value, field) {
   if (value === undefined) return '默认';
   if (['delay', 'duration'].includes(field)) return `${value}ms`;
